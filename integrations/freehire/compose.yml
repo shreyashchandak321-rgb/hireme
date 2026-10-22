@@ -1,0 +1,76 @@
+x-environment: &environment
+  DATABASE_URL: postgres://hire:${POSTGRES_PASSWORD:?run setup.sh}@db:5432/hire?sslmode=disable
+  REDIS_URL: redis://redis:6379/0
+  MEILI_URL: http://meili:7700
+  MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?run setup.sh}
+  JWT_SECRET: ${JWT_SECRET:?run setup.sh}
+  PORT: '8080'
+services:
+  db:
+    image: pgvector/pgvector:pg18
+    environment:
+      POSTGRES_USER: hire
+      POSTGRES_DB: hire
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run setup.sh}
+    volumes:
+      - postgres:/var/lib/postgresql
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U hire -d hire]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  meili:
+    image: getmeili/meilisearch:v1.49.0
+    environment:
+      MEILI_ENV: production
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?run setup.sh}
+    volumes:
+      - search:/meili_data
+    restart: unless-stopped
+  migrate:
+    image: careerpilot-freehire:606e90c
+    build:
+      context: ./source
+      dockerfile: ../Dockerfile
+    environment: *environment
+    command: [/app/migrate]
+    depends_on:
+      db:
+        condition: service_healthy
+  api:
+    image: careerpilot-freehire:606e90c
+    environment: *environment
+    ports:
+      - 127.0.0.1:${FREEHIRE_HTTP_PORT:-8086}:8080
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      meili:
+        condition: service_started
+    restart: unless-stopped
+  operator:
+    image: careerpilot-freehire:606e90c
+    profiles: [tools]
+    environment: *environment
+    command: [/app/add-board]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meili:
+        condition: service_started
+volumes:
+  postgres:
+  search:
