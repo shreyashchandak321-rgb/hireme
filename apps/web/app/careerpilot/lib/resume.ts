@@ -1,6 +1,6 @@
 /** Extract text locally in the browser; never send a document to an AI provider. */
 export async function extractResumeText(file: Pick<File,'name'|'size'|'arrayBuffer'|'text'>) {
-  if (!file.size || file.size > 8 * 1024 * 1024) throw new Error('Choose a resume up to 8 MB.');
+  if (!file.size || file.size > 3 * 1024 * 1024) throw new Error('Choose a resume up to 3 MB.');
   const ext = file.name.split('.').pop()?.toLowerCase();
   let text = '';
   if (ext === 'txt') text = await file.text();

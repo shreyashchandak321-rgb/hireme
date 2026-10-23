@@ -27,9 +27,11 @@
     "lint": "oxlint",
     "format": "oxfmt --check",
     "format:fix": "oxfmt",
-    "healthcheck": "oxlint --fix && oxfmt && pnpm run typecheck && manypkg fix"
+    "healthcheck": "oxlint --fix && oxfmt && pnpm run typecheck && manypkg fix",
+    "test:storage": "node tests/storage.mjs"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.11",
     "@manypkg/cli": "catalog:",
     "@turbo/gen": "catalog:",
     "cross-env": "catalog:",

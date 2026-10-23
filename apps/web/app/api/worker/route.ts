@@ -1,3 +1,4 @@
+export const maxDuration=60;
 import {hasParsedValue,normalizeCandidate,mailClassification} from '../../careerpilot/lib/candidate';
 import {completeFreehire} from '../../careerpilot/lib/worker-freehire';
 import {database,hash,json,error,read,list,now,clean,rid,write} from '../../careerpilot/lib/server';

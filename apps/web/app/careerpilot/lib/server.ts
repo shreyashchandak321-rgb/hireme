@@ -12,3 +12,13 @@ export function error(message:string,status=400){return json({error:message},sta
 export function clean(value:unknown,max=10000){return typeof value==='string'?value.trim().slice(0,max):'';}
 export function safeURL(v:unknown){try{const u=new URL(String(v));if(u.protocol!=='https:'||u.username||u.password)throw 0;return u.toString();}catch{return '';}}
 export const plain=jobText;
+
+export async function jobPage(owner:string,offset:number){
+ const page=await database().prepare("SELECT json_set(data,'$.description',substr(json_extract(data,'$.description'),1,1600)) AS data FROM records WHERE owner=? AND kind='job' ORDER BY updated DESC,id DESC LIMIT 100 OFFSET ?").bind(owner,offset).all<{data:string}>();
+ return {jobs:page.results.map(r=>JSON.parse(r.data)),nextOffset:page.results.length===100?offset+100:null};
+}
+
+export async function applicationPage(owner:string,offset:number){
+ const page=await database().prepare("SELECT data FROM records WHERE owner=? AND kind='application' ORDER BY id LIMIT 5 OFFSET ?").bind(owner,offset).all<{data:string}>();
+ return {applications:page.results.map(r=>JSON.parse(r.data)),applicationsNextOffset:page.results.length===5?offset+5:null};
+}
