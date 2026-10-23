@@ -6,7 +6,18 @@ import assert from 'node:assert/strict';
 import {stripTypeScriptTypes} from 'node:module';
 const db=new PGlite();
 await db.exec(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role; CREATE SCHEMA auth; CREATE TABLE auth.users(id uuid PRIMARY KEY); CREATE SCHEMA storage; CREATE TABLE storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);`);
+// Exercise a hosted-database DDL hook that resolves a table by its short name.
+await db.exec(`CREATE FUNCTION public.test_ddl_hook() RETURNS event_trigger LANGUAGE plpgsql AS $$
+DECLARE cmd record; relation_name text;
+BEGIN FOR cmd IN SELECT * FROM pg_event_trigger_ddl_commands() LOOP
+ IF cmd.schema_name='careerpilot' AND cmd.object_type='table' THEN
+  SELECT relname INTO relation_name FROM pg_class WHERE oid=cmd.objid;
+  EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY',relation_name);
+ END IF;
+END LOOP; END $$;
+CREATE EVENT TRIGGER test_ddl_hook ON ddl_command_end WHEN TAG IN ('CREATE TABLE') EXECUTE FUNCTION public.test_ddl_hook();`);
 await db.exec(fs.readFileSync(new URL('../apps/web/supabase/migrations/20261022000000_careerpilot_cloud.sql',import.meta.url),'utf8'));
+await db.exec('DROP EVENT TRIGGER test_ddl_hook; DROP FUNCTION public.test_ddl_hook();');
 const alice='00000000-0000-0000-0000-000000000001',bob='00000000-0000-0000-0000-000000000002';
 await db.query('INSERT INTO auth.users VALUES ($1),($2)',[alice,bob]);
 const queries=(await db.query('SELECT * FROM careerpilot.queries')).rows;

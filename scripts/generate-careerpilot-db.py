@@ -53,7 +53,9 @@ def convert(s):
  return s
 registry=[]; rows=[]
 for q in sorted(queries):
- pg=convert(q); assert pg.count('?')==q.count('?'),q
+ pg=convert(q)
+ pg=re.sub(r'\b(FROM|JOIN|INTO|UPDATE) (records|devices|tasks)\b', r'\1 careerpilot.\2', pg)
+ assert pg.count('?')==q.count('?'),q
  key=hashlib.sha256(q.encode()).hexdigest()
  returning=pg.startswith('SELECT') or ' RETURNING ' in pg
  if not returning:pg+=' RETURNING 1 AS affected'

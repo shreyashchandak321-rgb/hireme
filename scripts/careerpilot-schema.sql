@@ -1,6 +1,8 @@
 -- CareerPilot cloud storage. Apply after the Makerkit schema migration.
 BEGIN;
 CREATE SCHEMA IF NOT EXISTS careerpilot;
+-- Make custom-schema tables resolvable to database DDL hooks during setup.
+SET LOCAL search_path = pg_catalog, careerpilot, public;
 REVOKE ALL ON SCHEMA careerpilot FROM PUBLIC, anon, authenticated;
 CREATE TABLE IF NOT EXISTS careerpilot.records (
  id text PRIMARY KEY, owner uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
